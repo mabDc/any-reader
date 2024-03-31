@@ -1,9 +1,9 @@
 import * as path from 'path';
 import * as fs from 'fs';
-import { v4 as uuidV4 } from 'uuid';
 import * as vscode from 'vscode';
 import { RuleManager } from '@any-reader/core';
-import { getBookSource, setBookSource } from '../dataManager';
+import { COMMANDS } from '../constants';
+import * as ruleFileManager from '../utils/ruleFileManager';
 import { TreeNode } from '../treeview/bookManager';
 
 export class WebView {
@@ -45,11 +45,12 @@ export class WebView {
 
     this.webviewPanel.webview.onDidReceiveMessage(async (message: any) => {
       const { type, data } = message;
+      console.log('[onDidReceiveMessage]', { type, data });
 
       switch (type) {
         case 'getRule':
           {
-            const rules = await getBookSource();
+            const rules = ruleFileManager.list();
             this.webviewPanel!.webview.postMessage({
               type: 'getRule',
               data: rules.find((e) => e.id === data.id)
@@ -57,70 +58,114 @@ export class WebView {
           }
           break;
         case 'addRule':
-          {
-            let rules = await getBookSource();
-            if (!data.id) {
-              data.id = uuidV4();
-              rules.push(data);
-            } else {
-              rules = rules.filter((r) => r.id !== data.id);
-              rules.push(data);
-            }
-            setBookSource(rules);
-          }
+          await ruleFileManager.update(data);
           break;
-        case 'setRule':
+        case 'updateRule':
           {
-            const rules = await getBookSource();
-            const row = rules.find((e) => e.id === data.row.id);
-            if (row) {
-              Object.assign(row, data.newRow);
-            }
-            await setBookSource(rules);
+            await ruleFileManager.update(data);
             this.webviewPanel!.webview.postMessage({
               type: 'getBookSource',
-              data: await getBookSource()
+              data: ruleFileManager.list()
             });
           }
           break;
         case 'getBookSource':
           this.webviewPanel!.webview.postMessage({
             type,
-            data: await getBookSource()
+            data: ruleFileManager.list()
           });
           break;
         case 'search':
           {
-            const { uuid, keyword } = data;
+            const { uuid, keyword, contentTypes } = data;
             this.mSearchToken = uuid;
-            const rules = await getBookSource();
+            const rules = ruleFileManager.list().filter((e) => contentTypes.includes(e.contentType) && e.enableSearch);
+            const count = rules.length;
+            let runCount = 0;
+            if (count === 0) {
+              this.webviewPanel!.webview.postMessage({
+                type,
+                data: {
+                  runCount,
+                  count,
+                  uuid
+                }
+              });
+            }
             for (const rule of rules) {
               if (this.mSearchToken !== uuid) {
                 return;
               }
               const analyzer = new RuleManager(rule);
               const searchItems = await analyzer.search(keyword).catch(() => []);
-              if (searchItems.length) {
-                this.webviewPanel!.webview.postMessage({
-                  type,
-                  data: {
-                    uuid,
-                    rule,
-                    list: searchItems
-                  }
-                });
-              }
+              runCount++;
+              this.webviewPanel!.webview.postMessage({
+                type,
+                data: {
+                  runCount,
+                  count,
+                  uuid,
+                  rule,
+                  list: searchItems
+                }
+              });
             }
           }
           break;
+        // 获取章节
+        case 'getChapter':
+          {
+            const { rule, data: searchItem } = data;
+            vscode.commands.executeCommand(
+              COMMANDS.getChapter,
+              {
+                ...searchItem,
+                ruleId: rule.id
+              },
+              {
+                saveHistory: searchItem
+              }
+            );
+          }
+          break;
 
+        case 'discover':
+          {
+            const { rule, data: params } = data;
+            const ruleManager = new RuleManager(rule);
+            const res = await ruleManager.discover(params.value);
+            this.webviewPanel!.webview.postMessage({
+              type,
+              data: {
+                rule,
+                data: res
+              }
+            });
+          }
+          break;
+        case 'discoverMap':
+          {
+            const { rule } = data;
+            const ruleManager = new RuleManager(rule);
+            const res = await ruleManager.discoverMap();
+            this.webviewPanel!.webview.postMessage({
+              type,
+              data: {
+                rule,
+                data: res
+              }
+            });
+          }
+          break;
+        case 'editBookSource':
+          vscode.commands.executeCommand(COMMANDS.editBookSource);
         default:
           break;
       }
     });
   }
 
-  async navigateTo(routePath = '', title = 'Home') {
+  async navigateTo(routePath = '', title = 'AnyReader') {
     this.initWebviewPanel(title);
     if (!this.isVue) {
       this.webviewPanel!.webview.html = this.getWebViewContent(path.join('template-dist', 'index.html'));

@@ -3,7 +3,7 @@
   "displayName": "any-reader",
   "description": "any-reader for vscode",
   "icon": "resources/icon.png",
-  "version": "0.2.2",
+  "version": "0.5.3",
   "preview": true,
   "publisher": "aooiu",
   "qna": "https://github.com/aooiuu/any-reader/issues",
@@ -48,12 +48,6 @@
   "contributes": {
     "commands": [
       {
-        "command": "any-reader.editBookSource",
-        "title": "书源编辑",
-        "icon": "$(settings-edit)",
-        "category": "any-reader"
-      },
-      {
         "command": "any-reader.getBookSource",
         "title": "刷新书源",
         "icon": "$(refresh)",
@@ -66,6 +60,18 @@
         "category": "any-reader"
       },
       {
+        "command": "any-reader.searchBookByRule",
+        "title": "搜索",
+        "icon": "$(search)",
+        "category": "any-reader"
+      },
+      {
+        "command": "any-reader.discover",
+        "title": "discover",
+        "icon": "$(flame)",
+        "category": "any-reader"
+      },
+      {
         "command": "any-reader.home",
         "title": "Home",
         "icon": "$(home)",
@@ -75,6 +81,28 @@
         "command": "any-reader.gamePlay",
         "title": "Game Play",
         "icon": "$(game)",
+        "category": "any-reader"
+      },
+      {
+        "command": "any-reader.star",
+        "title": "star",
+        "icon": "$(star)"
+      },
+      {
+        "command": "any-reader.unstar",
+        "title": "unstar",
+        "icon": "$(star-full)"
+      },
+      {
+        "command": "any-reader.historyRefresh",
+        "title": "refresh",
+        "icon": "$(refresh)",
+        "category": "any-reader"
+      },
+      {
+        "command": "any-reader.favoritesRefresh",
+        "title": "refresh",
+        "icon": "$(refresh)",
         "category": "any-reader"
       }
     ],
@@ -91,24 +119,32 @@
       "any-reader": [
         {
           "id": "any-reader-book",
-          "name": "Book"
+          "name": "阅读"
         },
         {
           "id": "any-reader-source",
-          "name": "Source"
+          "name": "规则"
+        },
+        {
+          "id": "any-reader-history",
+          "name": "历史"
+        },
+        {
+          "id": "any-reader-favorites",
+          "name": "收藏"
         }
       ]
     },
     "menus": {
       "view/title": [
         {
-          "command": "any-reader.searchBook",
-          "when": "view == any-reader-book || view == any-reader-source",
+          "command": "any-reader.discover",
+          "when": "view == any-reader-source",
           "group": "navigation"
         },
         {
-          "command": "any-reader.editBookSource",
-          "when": "view == any-reader-book || view == any-reader-source",
+          "command": "any-reader.searchBook",
+          "when": "view == any-reader-source",
           "group": "navigation"
         },
         {
@@ -118,13 +154,33 @@
         },
         {
           "command": "any-reader.home",
-          "when": "view == any-reader-book",
+          "when": "view == any-reader-source",
+          "group": "navigation"
+        },
+        {
+          "command": "any-reader.historyRefresh",
+          "when": "view == any-reader-history",
+          "group": "navigation"
+        },
+        {
+          "command": "any-reader.favoritesRefresh",
+          "when": "view == any-reader-favorites",
           "group": "navigation"
         }
       ],
       "view/item/context": [
         {
-          "command": "any-reader.searchBook",
+          "command": "any-reader.star",
+          "when": "view == any-reader-book && viewItem == star",
+          "group": "inline"
+        },
+        {
+          "command": "any-reader.unstar",
+          "when": "view == any-reader-book && viewItem == unstar",
+          "group": "inline"
+        },
+        {
+          "command": "any-reader.searchBookByRule",
           "when": "view == any-reader-source && viewItem != GAME",
           "group": "inline"
         },

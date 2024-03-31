@@ -22,6 +22,14 @@ const router = createRouter({
     {
       path: '/iframe',
       component: () => import('@/pages/iframe/index.vue')
+    },
+    {
+      path: '/search',
+      component: () => import('@/pages/search/index.vue')
+    },
+    {
+      path: '/discover',
+      component: () => import('@/pages/discover/index.vue')
     }
   ]
 });

@@ -9,6 +9,7 @@
           </a-checkbox>
         </a-checkbox-group>
       </div>
+      <a-button @click="editBookSource">打开规则文件</a-button>
       <a-button type="primary" @click="addRule">
         <template #icon>
           <icon-plus />
@@ -39,11 +40,8 @@ const router = useRouter();
 const searchText = ref('');
 const contentTypes = ref(CONTENT_TYPES.map((e) => e.value).flat());
 
-function setRule(row, newRow) {
-  postMessage('setRule', {
-    row: toRaw(row),
-    newRow: toRaw(newRow)
-  });
+function updateRule(row) {
+  postMessage('updateRule', row);
 }
 
 function editRule(row) {
@@ -77,8 +75,24 @@ const tableColumns = ref([
       <a-switch
         model-value={record.enableSearch}
         onUpdate:model-value={(v) =>
-          setRule(record, {
+          updateRule({
+            ...record,
             enableSearch: v
+          })
+        }
+      />
+    )
+  },
+  {
+    title: '启用发现',
+    width: 100,
+    align: 'center',
+    render: ({ record }) => (
+      <a-switch
+        model-value={record.enableDiscover}
+        onUpdate:model-value={(v) =>
+          setRule(record, {
+            enableDiscover: v
           })
         }
       />
@@ -112,4 +126,8 @@ useMessage('getBookSource', (data) => {
 });
 
 postMessage('getBookSource', {});
+
+function editBookSource() {
+  postMessage('editBookSource', {});
+}
 </script>
