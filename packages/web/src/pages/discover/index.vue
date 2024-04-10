@@ -21,10 +21,25 @@
       <a-spin class="w-full h-full" :loading="loading">
         <div v-if="list.length" class="mt-10 flex-1 overflow-auto">
           <div class="flex overflow-auto flex-wrap gap-6">
-            <div v-for="(row, idx) in list" :key="idx" class="flex flex-col flex-shrink-0 w-102 cursor-pointer hover:op-70" @click="getChapter(row)">
-              <a-image :src="row.cover" :preview="false" alt="" srcset="" class="w-102 h-136 mb-5 rounded-5" />
+            <div
+              v-for="(row, idx) in list"
+              :key="idx"
+              class="node relative flex flex-col flex-shrink-0 w-102 cursor-pointer hover:op-70"
+              @click="getChapter(row)"
+            >
+              <div class="w-102 h-136 mb-5 rounded-5 overflow-hidden">
+                <a-image :src="row.cover" :preview="false" alt="" srcset="" class="cover w-102 h-136" width="100%" height="100%" fit="cover" />
+              </div>
               <div class="overflow-hidden whitespace-nowrap text-ellipsis mb-2">{{ row.name }}</div>
               <div class="overflow-hidden whitespace-nowrap text-ellipsis text-12 op-70">{{ row.author }}</div>
+
+              <div
+                class="star invisible absolute top-5 right-5 px-2 py-2 rounded-10 bg-[#000000cc] flex items-center justify-center"
+                @click.stop="favoritesStore.star(row, ruleId)"
+              >
+                <icon-star-fill v-if="favoritesStore.starred(row, ruleId)" :size="14" />
+                <icon-star v-else :size="14" />
+              </div>
             </div>
           </div>
         </div>
@@ -35,8 +50,13 @@
 
 <script setup>
 import { CONTENT_TYPES, CONTENT_TYPE } from '@/constants';
-import { postMessage, useMessage } from '@/utils/postMessage';
+import { postMessage, useMessage, sendMessage } from '@/utils/postMessage';
+import { useFavoritesStore } from '@/stores/favorites';
 import Category from './Category.vue';
+
+const favoritesStore = useFavoritesStore();
+
+favoritesStore.sync();
 
 const list = ref([]);
 const contentType = ref(CONTENT_TYPE.NOVEL);
@@ -48,36 +68,29 @@ const categoryList = ref([]);
 const loading = ref(false);
 
 // 分类被修改
-function changeCategory(row) {
+async function changeCategory(row) {
+  loading.value = true;
   list.value = [];
   loading.value = true;
-  postMessage('discover', {
+  list.value = await sendMessage('discover', {
     data: row,
     rule: rule.value
-  });
+  }).then((e) => e.data);
+  loading.value = false;
 }
 
 // 规则被修改
-function changeRule(row) {
+async function changeRule(row) {
+  loading.value = true;
   ruleId.value = row.id;
   rule.value = row;
   list.value = [];
   categoryList.value = [];
-  postMessage('discoverMap', {
+  categoryList.value = await sendMessage('discoverMap', {
     rule: row
-  });
-}
-
-// 获取分类
-useMessage('discoverMap', (data) => {
-  categoryList.value = data.data;
-});
-
-// 获取分类下内容
-useMessage('discover', (data) => {
-  list.value = data.data;
+  }).then((e) => e.data);
   loading.value = false;
-});
+}
 
 // 获取规则列表
 useMessage('getBookSource', (data) => {
@@ -96,3 +109,21 @@ function getChapter(row) {
   });
 }
 </script>
+
+<style scoped lang="scss">
+.node .cover {
+  transition: all ease 0.3s;
+}
+.node:hover {
+  .star {
+    visibility: visible;
+    &:hover {
+      background: rgba(0, 0, 0, 1);
+    }
+  }
+
+  .cover {
+    transform: scale(1.2);
+  }
+}
+</style>
